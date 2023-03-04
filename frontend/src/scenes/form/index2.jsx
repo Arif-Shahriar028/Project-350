@@ -1,7 +1,7 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { useState } from 'react';
 import { Box, Button, TextField } from '@mui/material';
-import { Formik } from 'formik';
+import { Formik, setIn } from 'formik';
 import * as yup from 'yup';
 import useMediaQuery from '@mui/material/useMediaQuery';
 import Header from '../../components/Header';
@@ -11,29 +11,74 @@ import Sidebar from '../global/Court_Sidebar';
 import axios from 'axios';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
-const CreateForm = () => {
+const UpdateForm = () => {
+  const [initialValues, setInitialValues] = useState({
+    name: '',
+    date: '02/23/24',
+    email: '',
+    nid: '',
+    jailName: '',
+    jailID: '',
+    punishmentStartDate: '02/23/24',
+    punishmentEndDate: '02/23/24',
+    courtID: '',
+    gender: '',
+    crime: '',
+  });
   const isNonMobile = useMediaQuery('(min-width:600px)');
 
-  const handleFormSubmit = (values) => {
-    console.log(values);
-    console.log(values.date);
-    const success = () => toast('Successfully updated a new criminal!');
-    const denied = () => toast('Please provide valid information!');
+  const fetchData = () => {
+    console.log('nid:', initialValues.nid);
     axios
-      .post('http://localhost:3001/court/criminalentry', values, {
+      .get(`http://localhost:3001/criminal/${initialValues.nid}`, {
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      })
+      .then((response) => {
+        console.log('responsed criminal data', response.data);
+        setInitialValues({
+          name: response.data.Name,
+          date: response.data.Dob,
+          email: response.data.CourtMail,
+          nid: response.data.Nid,
+          jailName: response.data.JailName,
+          jailID: response.data.JailId,
+          punishmentStartDate: response.data.Psd,
+          punishmentEndDate: response.data.Ped,
+          courtID: response.data.CourtId,
+          gender: response.data.Gender,
+          crime: response.data.Crime,
+        });
+      })
+      .catch((error) => {
+        console.log(error);
+      });
+  };
+  const handleFieldChange = (event) => {
+    const { name, value } = event.target;
+    setInitialValues((prevValues) => ({ ...prevValues, [name]: value }));
+  };
+
+  const handleFormSubmit = () => {
+    console.log('handleFromSubmit clicked', initialValues);
+    axios
+      .post('http://localhost:3001/court/updatecriminal', initialValues, {
         headers: {
           'Content-Type': 'application/json',
         },
       })
       .then((response) => {
         console.log(response.data);
-        success();
       })
       .catch((error) => {
         console.log(error);
-        denied();
       });
   };
+
+  useEffect(() => {
+    console.log('inside useeffect: ', initialValues);
+  }, [initialValues]);
   const [theme, colorMode] = useMode();
   const [isSidebar, setIsSidebar] = useState(true);
   return (
@@ -45,17 +90,17 @@ const CreateForm = () => {
           <main className="content">
             <Box m="20px">
               <Header
-                title="CREATE Criminal"
-                subtitle="Create a New Criminal Profile"
+                title="Update Criminal"
+                subtitle="Update a Criminal's Information"
               />
 
               <Formik
-                onSubmit={handleFormSubmit}
+                // onSubmit={handleFormSubmit}
                 initialValues={initialValues}
                 validationSchema={checkoutSchema}
               >
                 {({ values, handleBlur, handleChange, handleSubmit }) => (
-                  <form onSubmit={handleSubmit}>
+                  <form>
                     <Box
                       display="grid"
                       gap="30px"
@@ -70,10 +115,35 @@ const CreateForm = () => {
                         fullWidth
                         variant="filled"
                         type="text"
+                        label="National ID"
+                        onBlur={handleBlur}
+                        onChange={(event) => {
+                          setInitialValues({
+                            ...initialValues,
+                            nid: event.target.value,
+                          });
+                        }}
+                        value={initialValues.nid}
+                        name="nid"
+                        sx={{ gridColumn: 'span 3' }}
+                      />
+
+                      <Button
+                        color="secondary"
+                        variant="contained"
+                        onClick={fetchData}
+                        sx={{ gridColumn: 'span 1' }}
+                      >
+                        Validate NID
+                      </Button>
+                      <TextField
+                        fullWidth
+                        variant="filled"
+                        type="text"
                         label="Name"
                         onBlur={handleBlur}
-                        onChange={handleChange}
-                        value={values.name}
+                        onChange={handleFieldChange}
+                        value={initialValues.name}
                         name="name"
                         sx={{ gridColumn: 'span 2' }}
                       />
@@ -83,8 +153,8 @@ const CreateForm = () => {
                         type="date"
                         label="Date Of Birth"
                         onBlur={handleBlur}
-                        onChange={handleChange}
-                        value={values.date}
+                        onChange={handleFieldChange}
+                        value={initialValues.date}
                         name="date"
                         sx={{ gridColumn: 'span 2' }}
                       />
@@ -94,8 +164,8 @@ const CreateForm = () => {
                         type="text"
                         label="Jail Name"
                         onBlur={handleBlur}
-                        onChange={handleChange}
-                        value={values.jailName}
+                        onChange={handleFieldChange}
+                        value={initialValues.jailName}
                         name="jailName"
                         sx={{ gridColumn: 'span 2' }}
                       />
@@ -105,8 +175,8 @@ const CreateForm = () => {
                         type="text"
                         label="Jail ID"
                         onBlur={handleBlur}
-                        onChange={handleChange}
-                        value={values.jailID}
+                        onChange={handleFieldChange}
+                        value={initialValues.jailID}
                         name="jailID"
                         sx={{ gridColumn: 'span 2' }}
                       />
@@ -116,8 +186,8 @@ const CreateForm = () => {
                         type="date"
                         label="Punishment Start Date"
                         onBlur={handleBlur}
-                        onChange={handleChange}
-                        value={values.punishmentStartDate}
+                        onChange={handleFieldChange}
+                        value={initialValues.punishmentStartDate}
                         name="punishmentStartDate"
                         sx={{ gridColumn: 'span 2' }}
                       />
@@ -127,8 +197,8 @@ const CreateForm = () => {
                         type="date"
                         label="Punishment End Date"
                         onBlur={handleBlur}
-                        onChange={handleChange}
-                        value={values.punishmentEndDate}
+                        onChange={handleFieldChange}
+                        value={initialValues.punishmentEndDate}
                         name="punishmentEndDate"
                         sx={{ gridColumn: 'span 2' }}
                       />
@@ -138,20 +208,9 @@ const CreateForm = () => {
                         type="text"
                         label="Email"
                         onBlur={handleBlur}
-                        onChange={handleChange}
-                        value={values.email}
+                        onChange={handleFieldChange}
+                        value={initialValues.email}
                         name="email"
-                        sx={{ gridColumn: 'span 4' }}
-                      />
-                      <TextField
-                        fullWidth
-                        variant="filled"
-                        type="text"
-                        label="National ID"
-                        onBlur={handleBlur}
-                        onChange={handleChange}
-                        value={values.nid}
-                        name="nid"
                         sx={{ gridColumn: 'span 4' }}
                       />
                       <TextField
@@ -160,8 +219,8 @@ const CreateForm = () => {
                         type="text"
                         label="Court ID"
                         onBlur={handleBlur}
-                        onChange={handleChange}
-                        value={values.courtID}
+                        onChange={handleFieldChange}
+                        value={initialValues.courtID}
                         name="courtID"
                         sx={{ gridColumn: 'span 4' }}
                       />
@@ -171,8 +230,8 @@ const CreateForm = () => {
                         type="text"
                         label="Gender"
                         onBlur={handleBlur}
-                        onChange={handleChange}
-                        value={values.gender}
+                        onChange={handleFieldChange}
+                        value={initialValues.gender}
                         name="gender"
                         sx={{ gridColumn: 'span 4' }}
                       />
@@ -182,19 +241,20 @@ const CreateForm = () => {
                         type="text"
                         label="Crime Description"
                         onBlur={handleBlur}
-                        onChange={handleChange}
-                        value={values.crime}
+                        onChange={handleFieldChange}
+                        value={initialValues.crime}
                         name="crime"
                         sx={{ gridColumn: 'span 4' }}
                       />
                     </Box>
                     <Box display="flex" justifyContent="end" mt="20px">
                       <Button
-                        type="submit"
+                        type="button"
+                        onClick={handleFormSubmit}
                         color="secondary"
                         variant="contained"
                       >
-                        Create Criminal
+                        Update Criminal
                       </Button>
                     </Box>
                   </form>
@@ -228,18 +288,18 @@ const checkoutSchema = yup.object().shape({
   gender: yup.string().required('required'),
   crime: yup.string().required('required'),
 });
-const initialValues = {
-  name: '',
-  date: '02/23/2024',
-  email: '',
-  nid: '',
-  jailName: '',
-  jailID: '',
-  punishmentStartDate: '02/23/2024',
-  punishmentEndDate: '02/23/2024',
-  courtID: '',
-  gender: '',
-  crime: '',
-};
+// let initialValues = {
+//   name: '',
+//   date: '',
+//   email: '',
+//   nid: '',
+//   jailName: '',
+//   jailID: '',
+//   punishmentStartDate: '',
+//   punishmentEndDate: '',
+//   courtID: '',
+//   gender: '',
+//   crime: '',
+// };
 
-export default CreateForm;
+export default UpdateForm;

@@ -14,4 +14,7 @@
 /court/deletecriminal   DELETE            done         nid
 /criminal               GET               done         nid
 /logout                 POST              done
+/count                  POST              done         court, jail, passport, police (number)
+/count                  GET               done 
+/transaction            POST                           tx id, date, time, type, name                    
 ```

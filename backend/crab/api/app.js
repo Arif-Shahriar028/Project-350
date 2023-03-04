@@ -98,11 +98,12 @@ async function main() {
       app.post('/admin/courtentry', async (req, res) => {
         const { courtId, location, judgeSign, password } = req.body;
         const uid = `court_${courtId}`;
-
+        const txId = getRandomString(12);
         try {
           let result = await contract.evaluateTransaction(
             'CreateCourt',
             uid,
+            txId,
             courtId,
             location,
             judgeSign,
@@ -111,12 +112,15 @@ async function main() {
           await contract.submitTransaction(
             'CreateCourt',
             uid,
+            txId,
             courtId,
             location,
             judgeSign,
             password
           );
           console.log(`Court entry Successful\n Result: ${result}\n`);
+          setCount('court');
+          createTxn(txId, 'Court registered', location);
           res.send(result);
         } catch (error) {
           console.log(`*** Successfully caught the error: \n    ${error}\n`);
@@ -126,27 +130,37 @@ async function main() {
 
       //*============== Create Jail Entity ===========
       app.post('/admin/jailentry', async (req, res) => {
-        const { jailId, location, dSign, password } = req.body;
-        const uid = `jail_${jailId}`;
-
+        const { org, jailId, location, dSign, password } = req.body;
+        const txId = getRandomString(12);
+        const uid = `${org}_${jailId}`;
+        let type = '';
+        if (org === 'jail') type = `Jail registered`;
+        else if (org === 'police') type = `Police station registered`;
+        else if (org === 'passport') type = `Immigration office registered`;
         try {
           let result = await contract.evaluateTransaction(
             'CreateJail',
             uid,
+            txId,
             jailId,
             location,
             dSign,
+            org,
             password
           );
           await contract.submitTransaction(
             'CreateJail',
             uid,
+            txId,
             jailId,
             location,
             dSign,
+            org,
             password
           );
           console.log(`Jail entry Successful\n Result: ${result}\n`);
+          setCount(org);
+          createTxn(txId, type, dSign);
           res.send(result);
         } catch (error) {
           console.log(`*** Successfully caught the error: \n    ${error}\n`);
@@ -167,10 +181,14 @@ async function main() {
           );
 
           const userInfo = JSON.parse(result.toString());
+          console.log(
+            `========== user infor: ${JSON.stringify(userInfo)} ============`
+          );
           res.cookie('user', userInfo, {
             maxAge: 3600_000,
-            httpOnly: true,
+            httpOnly: false,
           });
+          // console.log(`cookie data : ${res.cookie.user}`);
           console.log(userInfo.CourtId);
           res.send(result.toString());
         } catch (error) {
@@ -182,22 +200,25 @@ async function main() {
 
       //*================== Jail login =====================
       app.post('/login/jail', async (req, res) => {
-        const { jailId, password } = req.body;
-        console.log(`courtid: ${jailId}, password: ${password}`);
+        const { email, password, org } = req.body;
+        console.log(`courtid: ${email}, password: ${password}`);
 
         try {
           let result = await contract.evaluateTransaction(
             'FindJailEntity',
-            jailId,
+            email,
+            org,
             password
           );
           const userInfo = JSON.parse(result.toString());
           res.cookie('user', userInfo, {
             maxAge: 3600_000,
-            httpOnly: true,
+            httpOnly: false,
           });
+          console.log(result.toString());
           res.send(result.toString());
         } catch (error) {
+          console.log(error.toString());
           res.status(400).json({
             error: error.toString(),
           });
@@ -206,17 +227,19 @@ async function main() {
 
       //*============= Create Criminal ============
       app.post('/court/criminalentry', async (req, res) => {
+        const txId = getRandomString(12);
         const {
           name,
-          dob,
-          gender,
-          nationality,
-          crimeDesc,
+          date,
+          email,
           nid,
-          pStartTime,
-          pEndTime,
-          courtId,
-          jailId,
+          jailName,
+          jailID,
+          punishmentStartDate,
+          punishmentEndDate,
+          courtID,
+          gender,
+          crime,
         } = req.body;
 
         const uid = `criminal_${nid}`;
@@ -225,32 +248,38 @@ async function main() {
           let result = await contract.evaluateTransaction(
             'CreateCriminal',
             uid,
+            txId,
             name,
-            dob,
-            gender,
-            nationality,
-            crimeDesc,
+            date,
+            email,
             nid,
-            pStartTime,
-            pEndTime,
-            courtId,
-            jailId
+            jailName,
+            jailID,
+            punishmentStartDate,
+            punishmentEndDate,
+            courtID,
+            gender,
+            crime
           );
           await contract.submitTransaction(
             'CreateCriminal',
             uid,
+            txId,
             name,
-            dob,
-            gender,
-            nationality,
-            crimeDesc,
+            date,
+            email,
             nid,
-            pStartTime,
-            pEndTime,
-            courtId,
-            jailId
+            jailName,
+            jailID,
+            punishmentStartDate,
+            punishmentEndDate,
+            courtID,
+            gender,
+            crime
           );
           console.log(`Criminal entry Successful\n Result: ${result}\n`);
+          setCount('criminal');
+          createTxn(txId, 'Criminal entry', name);
           res.send(result.toString());
         } catch (error) {
           console.log(`*** Successfully caught the error: \n    ${error}\n`);
@@ -259,23 +288,20 @@ async function main() {
       });
 
       //*================== Get criminals by court ==================
-      app.get('/court/criminals', async (req, res) => {
-        if (req.cookies.user == null) {
-          res.status(400).send('You are not logged in');
-          return;
-        }
-        const findUser = req.cookies.user;
-        console.log(`court id is: ${findUser.CourtId}`);
+      app.get('/court/criminals:cookieValue', async (req, res) => {
+        const email = req.params.cookieValue;
+        console.log('======= passed mail ', email);
 
         try {
           // const findUser = req.cookies.user.toString();
           // console.log(`court id is: ${findUser.CourtId}`);
           const result = await contract.evaluateTransaction(
             'GetCriminalByCourt',
-            findUser.CourtId
+            email
           );
 
           res.send(result.toString());
+          console.log(result.toString());
         } catch (error) {
           res.status(400).send(error.toString());
         }
@@ -302,52 +328,69 @@ async function main() {
         }
       });
 
+      //*================== Get All Criminals list ==================
+      app.get('/criminal/list', async (req, res) => {
+        try {
+          const result = await contract.evaluateTransaction('GetAllCriminals');
+
+          res.send(result);
+        } catch (error) {
+          res.status(400).send(error.toString());
+        }
+      });
+
       //*=================== Update criminal by court ==================
       app.post('/court/updatecriminal', async (req, res) => {
         const {
           name,
-          dob,
-          gender,
-          nationality,
-          crimeDesc,
+          date,
+          email,
           nid,
-          pStartTime,
-          pEndTime,
-          courtId,
-          jailId,
+          jailName,
+          jailID,
+          punishmentStartDate,
+          punishmentEndDate,
+          courtID,
+          gender,
+          crime,
         } = req.body;
 
-        const key = `criminal_${nid}`;
-
+        const uid = `criminal_${nid}`;
+        const txId = getRandomString(12);
         try {
           let result = await contract.evaluateTransaction(
             'UpdateCriminal',
-            key,
+            uid,
+            txId,
             name,
-            dob,
-            gender,
-            nationality,
-            crimeDesc,
+            date,
+            email,
             nid,
-            pStartTime,
-            pEndTime,
-            courtId,
-            jailId
+            jailName,
+            jailID,
+            punishmentStartDate,
+            punishmentEndDate,
+            courtID,
+            gender,
+            crime
           );
           await contract.submitTransaction(
             'UpdateCriminal',
-            key,
+            uid,
+            txId,
             name,
-            dob,
-            gender,
-            nationality,
-            crimeDesc,
+            date,
+            email,
             nid,
-            pStartTime,
-            pEndTime,
-            courtId,
-            jailId
+            jailName,
+            jailID,
+            punishmentStartDate,
+            punishmentEndDate,
+            courtID,
+            gender,
+            crime
           );
+          createTxn(txId, 'Criminal Updated', name);
           res.send(result.toString());
           console.log(`Criminal entry Successful\n Result: ${result}\n`);
         } catch (error) {
@@ -394,9 +437,11 @@ async function main() {
       });
 
       //*==================== Find Criminal ====================
-      app.get('/criminal', async (req, res) => {
-        const { nid } = req.body;
+      app.get('/criminal/:nid', async (req, res) => {
+        // const { nid } = req.body;
+        const nid = req.params.nid;
         const key = `criminal_${nid}`;
+        console.log('key is:', key);
         try {
           const result = await contract.evaluateTransaction(
             'FindCriminal',
@@ -408,7 +453,58 @@ async function main() {
         }
       });
 
-      //*=================== logout =====================
+      //*================== Set Count ====================
+      app.post('/count', async (req, res) => {
+        const { court, jail, passport, police, criminal } = req.body;
+        const key = `count`;
+        try {
+          const result = await contract.evaluateTransaction(
+            'SetCount',
+            key,
+            court,
+            jail,
+            passport,
+            police,
+            criminal
+          );
+          await contract.submitTransaction(
+            'SetCount',
+            key,
+            court,
+            jail,
+            passport,
+            police,
+            criminal
+          );
+          res.send(result);
+        } catch (error) {
+          res.status(400).send('Count data not found');
+        }
+      });
+
+      //*================== Get Count ==================
+      app.get('/count', async (req, res) => {
+        try {
+          const result = await contract.evaluateTransaction('GetCount');
+
+          res.send(result);
+        } catch (error) {
+          res.status(400).send(error.toString());
+        }
+      });
+
+      //*================== Get Orgranizations ==================
+      app.get('/organizations', async (req, res) => {
+        try {
+          const result = await contract.evaluateTransaction('GetOrg');
+
+          res.send(result);
+        } catch (error) {
+          res.status(400).send(error.toString());
+        }
+      });
+
+      //*=================== logout =======================
       app.get('/logout', async (req, res) => {
         try {
           res.cookie('user', '', { maxAge: -1, httpOnly: true });
@@ -417,6 +513,119 @@ async function main() {
           res.status(400).send(error.toString());
         }
       });
+
+      //*================== Set Count =====================
+      const setCount = async (org) => {
+        try {
+          let result = await contract.evaluateTransaction('GetCount');
+          result = JSON.parse(result);
+          let [
+            {
+              Record: { Court, Criminal, DocType, Jail, Key, Passport, Police },
+            },
+          ] = result;
+          console.log(Court);
+          if (org === 'court') {
+            const val = Number(Court) + 1;
+            Court = val.toString();
+          } else if (org === 'jail') {
+            let val = Number(Jail) + 1;
+            Jail = val.toString();
+          } else if (org === 'passport') {
+            let val = Number(Passport) + 1;
+            Passport = val.toString();
+          } else if (org === 'police') {
+            let val = Number(Police) + 1;
+            Police = val.toString();
+          } else if (org === 'criminal') {
+            let val = Number(Criminal) + 1;
+            Criminal = val.toString();
+          }
+          const key = `count`;
+          try {
+            const result = await contract.evaluateTransaction(
+              'SetCount',
+              key,
+              Court,
+              Jail,
+              Passport,
+              Police,
+              Criminal
+            );
+            await contract.submitTransaction(
+              'SetCount',
+              key,
+              Court,
+              Jail,
+              Passport,
+              Police,
+              Criminal
+            );
+            console.log(result.toString());
+          } catch (error) {
+            console.log(error);
+          }
+        } catch (error) {
+          console.log(error);
+        }
+      };
+
+      //*================ Create Transaction ================
+      const createTxn = async (txId, type, name) => {
+        const today = new Date();
+        const date = today.toLocaleDateString();
+        const key = `${type}_${txId}`;
+        const hours = today.getHours().toString().padStart(2, '0');
+        const minutes = today.getMinutes().toString().padStart(2, '0');
+        const seconds = today.getSeconds().toString().padStart(2, '0');
+        const time = `${hours}:${minutes}:${seconds}`;
+        try {
+          const result = await contract.evaluateTransaction(
+            'CreateTxn',
+            key,
+            txId,
+            date,
+            time,
+            type,
+            name
+          );
+          await contract.submitTransaction(
+            'CreateTxn',
+            key,
+            txId,
+            date,
+            time,
+            type,
+            name
+          );
+          console.log('Txn: ', result.toString());
+        } catch (error) {
+          console.log(error);
+        }
+      };
+
+      //*=================== Get Transaction ===================
+      app.get('/transaction', async (req, res) => {
+        try {
+          const result = await contract.evaluateTransaction('GetTxn');
+
+          res.send(result);
+        } catch (error) {
+          res.status(400).send(error.toString());
+        }
+      });
+
+      function getRandomString(length) {
+        const characters =
+          'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+        let result = '';
+        for (let i = 0; i < length; i++) {
+          result += characters.charAt(
+            Math.floor(Math.random() * characters.length)
+          );
+        }
+        return result;
+      }
 
       app.listen(3001, () => {
         console.log('app is running on port 3001');

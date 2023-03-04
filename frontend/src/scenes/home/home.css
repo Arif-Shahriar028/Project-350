@@ -1,9 +1,11 @@
 @import url('https://fonts.googleapis.com/css2?family=Labrada&display=swap');
 .Home {
   background-color: #111343;
+  /* background-color: #001c3d; */
 }
 .app-logo {
   border-radius: 50px;
+  margin: 3px;
 }
 .home-heading-text{
   display: flex;
@@ -17,7 +19,7 @@
 }
 .middleware{
   width: 100%;
-  min-height: 200vh;
+  min-height: 165vh;
   margin-top: 100px;
 }
 .middleware h1{
@@ -50,7 +52,7 @@
 
 .content-2{
   display: flex;
-  margin-top: 100px;
+  margin-top: 50px;
   padding: 20px 10px;
   align-items: center;
   justify-content: center;
@@ -76,7 +78,7 @@
 
 .content-3{
   display: flex;
-  margin-top: 100px;
+  margin-top: 75px;
   padding: 20px 10px;
   align-items: center;
   justify-content: center;

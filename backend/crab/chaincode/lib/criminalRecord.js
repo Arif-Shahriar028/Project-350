@@ -13,14 +13,17 @@ const { Contract } = require('fabric-contract-api');
 
 class CriminalRecord extends Contract {
   //*============= Create Court Entity =============
-  async CreateCourt(ctx, key, courtId, location, judgeSign, password) {
+  async CreateCourt(ctx, key, txId, courtId, location, judgeSign, password) {
     // ctx is transaction context
     const court = {
       Key: key,
-      CourtId: courtId,
+      TxnId: txId,
+      Id: courtId,
       Location: location,
-      JudgeSign: judgeSign,
+      Name: judgeSign,
       Password: password,
+      Type: 'court',
+      DocType: 'org',
     };
     //we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
     await ctx.stub.putState(
@@ -32,14 +35,17 @@ class CriminalRecord extends Contract {
   }
 
   //*============= Create Jail Entity =============
-  async CreateJail(ctx, key, jailId, location, dSign, password) {
+  async CreateJail(ctx, key, txId, jailId, location, dSign, org, password) {
     // ctx is transaction context
     const jail = {
       Key: key,
-      JailId: jailId,
+      TxnId: txId,
+      Id: jailId,
       Location: location,
-      DigitalSign: dSign,
+      Name: dSign,
       Password: password,
+      Type: org,
+      DocType: 'org',
     };
     //we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
     await ctx.stub.putState(
@@ -68,8 +74,8 @@ class CriminalRecord extends Contract {
   }
 
   //*================ Find Jail Entity ================
-  async FindJailEntity(ctx, jailId, password) {
-    const key = `jail_${jailId}`;
+  async FindJailEntity(ctx, jailId, org, password) {
+    const key = `${org}_${jailId}`;
 
     const userJSON = await ctx.stub.getState(key); // get the asset from chaincode state
     if (!userJSON || userJSON.length === 0) {
@@ -88,30 +94,35 @@ class CriminalRecord extends Contract {
   async CreateCriminal(
     ctx,
     key,
+    txId,
     name,
-    dob,
-    gender,
-    nationality,
-    crimeDesc,
+    date,
+    email,
     nid,
-    pStartTime,
-    pEndTime,
-    courtId,
-    jailId
+    jailName,
+    jailID,
+    punishmentStartDate,
+    punishmentEndDate,
+    courtID,
+    gender,
+    crime
   ) {
     // ctx is transaction context
     const criminal = {
       Key: key,
+      TxnId: txId,
       Name: name,
-      DateOfBirth: dob,
-      Gender: gender,
-      Nationality: nationality,
-      Crime: crimeDesc,
+      Dob: date,
+      CourtMail: email,
       Nid: nid,
-      PStart: pStartTime, // punishment start time
-      PEnd: pEndTime,
-      CourtId: courtId,
-      JailId: jailId,
+      JailName: jailName,
+      JailId: jailID,
+      Psd: punishmentStartDate,
+      Ped: punishmentEndDate,
+      CourtId: courtID,
+      Gender: gender,
+      Crime: crime,
+      Type: 'criminal',
       DocType: 'file',
     };
     //we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
@@ -158,20 +169,35 @@ class CriminalRecord extends Contract {
     return JSON.stringify(results);
   }
 
+  //*================ Get All Criminals list ==============
+  async GetAllCriminals(ctx) {
+    let queryString = {};
+    queryString.selector = {};
+    queryString.selector.DocType = 'file';
+    // queryString.selector.JailId = jailId;
+    let resultsIterator = await ctx.stub.getQueryResult(
+      JSON.stringify(queryString)
+    );
+    let results = await this.GetAllResults(resultsIterator, false);
+    return JSON.stringify(results);
+  }
+
   //*================ Update Criminal Data ================
   async UpdateCriminal(
     ctx,
     key,
+    txId,
     name,
-    dob,
-    gender,
-    nationality,
-    crimeDesc,
+    date,
+    email,
     nid,
-    pStartTime,
-    pEndTime,
-    courtId,
-    jailId
+    jailName,
+    jailID,
+    punishmentStartDate,
+    punishmentEndDate,
+    courtID,
+    gender,
+    crime
   ) {
     const exists = await ctx.stub.getState(key);
     if (!exists || exists.length === 0) {
@@ -181,16 +207,19 @@ class CriminalRecord extends Contract {
     // overwriting original asset with new asset
     const updatedAsset = {
       Key: key,
+      TxnId: txId,
       Name: name,
-      DateOfBirth: dob,
-      Gender: gender,
-      Nationality: nationality,
-      Crime: crimeDesc,
+      Dob: date,
+      CourtMail: email,
       Nid: nid,
-      PStart: pStartTime, // punishment start time
-      PEnd: pEndTime,
-      CourtId: courtId,
-      JailId: jailId,
+      JailName: jailName,
+      JailId: jailID,
+      Psd: punishmentStartDate,
+      Ped: punishmentEndDate,
+      CourtId: courtID,
+      Gender: gender,
+      Crime: crime,
+      Type: 'criminal',
       DocType: 'file',
     };
     // we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
@@ -211,6 +240,84 @@ class CriminalRecord extends Contract {
     }
     const result = await ctx.stub.deleteState(key);
     return JSON.stringify(result);
+  }
+
+  //*================= Set count ===================
+  async SetCount(ctx, key, court, jail, passport, police, criminal) {
+    // ctx is transaction context
+    const Count = {
+      Key: key,
+      Court: court,
+      Jail: jail,
+      Passport: passport,
+      Police: police,
+      Criminal: criminal,
+      DocType: 'count',
+    };
+    //we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
+    await ctx.stub.putState(
+      // The stub encapsulates the APIs between the chaincode implementation and the Fabric peer.
+      key,
+      Buffer.from(stringify(sortKeysRecursive(Count)))
+    );
+    return JSON.stringify(Count);
+  }
+
+  //*=============== Get Count =======================
+  async GetCount(ctx) {
+    let queryString = {};
+    queryString.selector = {};
+    queryString.selector.DocType = 'count';
+    let resultsIterator = await ctx.stub.getQueryResult(
+      JSON.stringify(queryString)
+    );
+    let results = await this.GetAllResults(resultsIterator, false);
+    return JSON.stringify(results);
+  }
+
+  //*=============== Get Organizations list =======================
+  async GetOrg(ctx) {
+    let queryString = {};
+    queryString.selector = {};
+    queryString.selector.DocType = 'org';
+    let resultsIterator = await ctx.stub.getQueryResult(
+      JSON.stringify(queryString)
+    );
+    let results = await this.GetAllResults(resultsIterator, false);
+    return JSON.stringify(results);
+  }
+
+  //*================= Create Transaction ==============
+  async CreateTxn(ctx, key, txId, date, time, type, name) {
+    // ctx is transaction context
+    const data = {
+      Key: key,
+      TxId: txId,
+      Date: date,
+      Time: time,
+      Type: type,
+      Name: name,
+      DocType: 'txn',
+    };
+    //we insert data in alphabetic order using 'json-stringify-deterministic' and 'sort-keys-recursive'
+    await ctx.stub.putState(
+      // The stub encapsulates the APIs between the chaincode implementation and the Fabric peer.
+      key,
+      Buffer.from(stringify(sortKeysRecursive(data)))
+    );
+    return JSON.stringify(data);
+  }
+
+  //*=============== Get Txn =======================
+  async GetTxn(ctx) {
+    let queryString = {};
+    queryString.selector = {};
+    queryString.selector.DocType = 'txn';
+    let resultsIterator = await ctx.stub.getQueryResult(
+      JSON.stringify(queryString)
+    );
+    let results = await this.GetAllResults(resultsIterator, false);
+    return JSON.stringify(results);
   }
 
   async GetAllResults(iterator, isHistory) {

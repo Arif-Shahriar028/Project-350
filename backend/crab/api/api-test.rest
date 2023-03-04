@@ -3,7 +3,8 @@ POST http://localhost:3001/admin/courtentry
 content-type: application/json
 
 {
-    "courtId": "12345678",
+    "org": "court",
+    "courtId": "court2@gmail.com",
     "location": "Dhaka",
     "judgeSign": "mr kashem",
     "password": "123456" 
@@ -25,7 +26,8 @@ POST http://localhost:3001/admin/jailentry
 content-type: application/json
 
 {
-    "jailId": "23456789",
+    "org": "jail",
+    "jailId": "jail@gmail.com",
     "location": "Narayanganj",
     "dSign": "njail",
     "password": "123456"
@@ -36,7 +38,8 @@ POST http://localhost:3001/admin/jailentry
 content-type: application/json
 
 {
-    "jailId": "12345678",
+    "org": "jail",
+    "jailId": "jail2@gmail.com",
     "location": "Sylhet",
     "dSign": "sjail",
     "password": "123456"
@@ -66,15 +69,16 @@ content-type: application/json
 
 {
     "name": "Omar Sultan",
-    "dob": "1-1-1998",
-    "gender": "Male",
-    "nationality": "Bangladeshi",
-    "crimeDesc": "used chatgpt",
-    "nid": "420420",
-    "pStartTime": "null",
-    "pEndTime": "null",
-    "courtId": "12345678",
-    "jailId": "12345678"
+    "date": "1-1-1998",
+    "email": "court@gmail.com",
+    "nid": "122233333",
+    "jailName": "kashimpur",
+    "jailID": "420420",
+    "punishmentStartDate": "null",
+    "punishmentEndDate": "null",
+    "courtID": "court@gmail.com",
+    "gender": "male",
+    "crime": "do nothing"
 }
 
 ###
@@ -91,8 +95,8 @@ content-type: application/json
     "nid": "420421",
     "pStartTime": "null",
     "pEndTime": "null",
-    "courtId": "12345678",
-    "jailId": "23456789"
+    "courtId": "court@gmail.com",
+    "jailId": "jail@gmail.com"
 }
 
 ###
@@ -107,6 +111,9 @@ content-type: application/json
 
 ###
 GET http://localhost:3001/court/criminals
+
+###
+GET http://localhost:3001/criminal/list
 
 ###
 GET http://localhost:3001/jail/criminals
@@ -145,9 +152,31 @@ content-type: application/json
 
 ###
 
-GET http://localhost:3001/criminal
+GET http://localhost:3001/criminal/:"122233333"
+Content-Type: application/json
+
+
+
+### 
+POST http://localhost:3001/count
 Content-Type: application/json
 
 {
-    "nid": "420420"
+    "court": 0,
+    "jail": 0,
+    "passport": 0,
+    "police": 0,
+    "criminal": 0
 }
+
+
+###
+GET http://localhost:3001/count
+
+###
+GET http://localhost:3001/transaction
+
+###
+GET http://localhost:3001/organizations
+
+// court and jail attribute have to be same to fetch data
