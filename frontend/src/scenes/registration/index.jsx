@@ -47,7 +47,7 @@ export default function Registration() {
       };
 
       axios
-        .post('http://localhost:3001/admin/courtentry', data, {
+        .post('http://192.168.0.230:3001/admin/courtentry', data, {
           headers: {
             'Content-Type': 'application/json',
           },
@@ -77,7 +77,7 @@ export default function Registration() {
       };
 
       axios
-        .post('http://localhost:3001/admin/jailentry', data, {
+        .post('http://192.168.0.230:3001/admin/jailentry', data, {
           headers: {
             'Content-Type': 'application/json',
           },
